@@ -1,0 +1,32 @@
+stages:
+  - build
+  - test
+  - deploy
+
+build:
+  stage: build
+  script:
+    - docker build -t ${CI_PROJECT_PATH_SLUG}:${CI_COMMIT_REF_SLUG} .
+
+test:
+  stage: test
+  script:
+    - docker run --name group1-master-test --rm -w="/home/node/app" ${CI_PROJECT_PATH_SLUG}:${CI_COMMIT_REF_SLUG} npm t
+
+heroku_staging:
+  stage: deploy
+  only:
+    - master
+  script:
+    - docker login --username=_ --password=${HEROKU_STAGING_API_KEY} registry.heroku.com
+    - docker tag ${CI_PROJECT_PATH_SLUG}:${CI_COMMIT_REF_SLUG} registry.heroku.com/eauc-cours-devops-staging/web
+    - docker push registry.heroku.com/eauc-cours-devops-staging/web:latest
+
+heroku_prod:
+  stage: deploy
+  only:
+    - tags
+  script:
+    - docker login --username=_ --password=${HEROKU_STAGING_API_KEY} registry.heroku.com
+    - docker tag ${CI_PROJECT_PATH_SLUG}:${CI_COMMIT_REF_SLUG} registry.heroku.com/eauc-cours-devops-prod/web
+    - docker push registry.heroku.com/eauc-cours-devops-prod/web:latest
